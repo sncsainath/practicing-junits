@@ -1,0 +1,81 @@
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
+
+import javax.persistence.EntityManagerFactory;
+import javax.sql.DataSource;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
+
+@SpringJUnitConfig
+@SpringBootTest
+@Import(ReadOnlyPersistenceConfigurationTest.Config.class)
+public class ReadOnlyPersistenceConfigurationTest {
+
+    @InjectMocks
+    private ReadOnlyPersistenceConfiguration readOnlyPersistenceConfig;
+
+    @Mock
+    private DataSource readOnlyDataSource;
+
+    @Mock
+    private EntityManagerFactoryBuilder builder;
+
+    @MockBean
+    private DataSourceProperties readOnlyDataSourceProperties;
+
+    @MockBean
+    private AuroraTamHikariDataSource.IamAuthTokenParam readerIamAuthTokenParam;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testReadOnlyEntityManager() {
+        when(builder.dataSource(readOnlyDataSource)).thenReturn(builder);
+        LocalContainerEntityManagerFactoryBean entityManagerFactoryBean = readOnlyPersistenceConfig.readOnlyEntityManager(builder, readOnlyDataSource);
+        assertNotNull(entityManagerFactoryBean);
+    }
+
+    @Test
+    void testReadOnlyJpaTransactionManager() {
+        EntityManagerFactory entityManagerFactory = readOnlyPersistenceConfig.readOnlyEntityManager(builder, readOnlyDataSource).getObject();
+        JpaTransactionManager transactionManager = readOnlyPersistenceConfig.readonlyJpaTransactionManager(entityManagerFactory);
+        assertNotNull(transactionManager);
+    }
+
+    @Test
+    void testReadOnlyDataSource() {
+        when(readOnlyDataSourceProperties.initializeDataSourceBuilder()).thenReturn(readOnlyDataSource);
+        DataSource dataSource = readOnlyPersistenceConfig.readOnlyDataSource("localhost:3306");
+        assertNotNull(dataSource);
+    }
+
+    @TestConfiguration
+    static class Config {
+        @Bean
+        public DataSourceProperties readOnlyDataSourceProperties() {
+            return new DataSourceProperties();
+        }
+
+        @Bean
+        public AuroraTamHikariDataSource.IamAuthTokenParam readerIamAuthTokenParam() {
+            return new AuroraTamHikariDataSource.IamAuthTokenParam();
+        }
+    }
+}
