@@ -1,0 +1,119 @@
+package com.chase.ccb.cc.pip.config.exception;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+
+import java.util.Collections;
+import java.util.Set;
+
+@WebMvcTest(PaymentsServiceExceptionHandler.class)
+public class PaymentsServiceExceptionHandlerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private PaymentsServiceExceptionHandler exceptionHandler;
+
+    @BeforeEach
+    public void setup() {
+        // Setup mock behavior if needed
+    }
+
+    @Test
+    public void testHandleMissingRequestHeaderException() throws Exception {
+        MissingRequestHeaderException exception = new MissingRequestHeaderException("Authorization", null);
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message").value("Missing Authorization in the header."));
+    }
+
+    @Test
+    public void testHandleMethodArgumentNotValidException() throws Exception {
+        MethodArgumentNotValidException exception = // mock or instantiate
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message").value("Validation failed for argument."));
+    }
+
+    @Test
+    public void testHandleConstraintViolationException() throws Exception {
+        ConstraintViolationException exception = new ConstraintViolationException("Invalid input", Collections.emptySet());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message").value("Invalid input"));
+    }
+
+    @Test
+    public void testHandleMethodArgumentTypeMismatchException() throws Exception {
+        MethodArgumentTypeMismatchException exception = new MethodArgumentTypeMismatchException("test", String.class, "test", null, new IllegalArgumentException());
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message").value("test should be of type java.lang.String"));
+    }
+
+    @Test
+    public void testHandleMissingServletRequestParameterException() throws Exception {
+        MissingServletRequestParameterException exception = new MissingServletRequestParameterException("param", "String");
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0].message").value("param parameter is missing."));
+    }
+
+    @Test
+    public void testHandleAccessDeniedException() throws Exception {
+        AccessDeniedException exception = new AccessDeniedException("Access is denied");
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.errors[0].message").value("Access is denied"));
+    }
+
+    @Test
+    public void testHandleRuntimeException() throws Exception {
+        RuntimeException exception = new RuntimeException("Internal error");
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.errors[0].message").value("Internal error"));
+    }
+
+    @Test
+    public void testHandleForbiddenException() throws Exception {
+        ForbiddenException exception = new ForbiddenException("Access forbidden");
+
+        mockMvc.perform(MockMvcRequestBuilders.get("/test")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errors[0].message").value("Access forbidden"));
+    }
+}
